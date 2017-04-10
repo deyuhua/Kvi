@@ -23,7 +23,7 @@ global* init_global() {
   printf("%d\n", UCHAR_MAX);
 
   // default mode when enter editor
-  kVI->mode = INS;
+  kVI->mode = CMD;
 
   kVI->head.next = NULL;
   kVI->cur_frame = NULL;
@@ -60,6 +60,7 @@ void termios_end(global *kVI) {
   tcsetattr(STDIN_FILENO, TCSANOW, &kVI->old);
 
 }
+
 /***********************************************
  *           handle user input
  ************************************************/
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
 
   while(kVI->cur_frame && kVI->mode != QUIT) {
     // refresh screen
-    pretty_print(kVI->cur_frame->cache);
+    pretty_print(kVI);
 
     // read from user
     kVI->key = get_key();

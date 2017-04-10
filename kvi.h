@@ -75,7 +75,7 @@ struct _global {
 };
 
 
-enum TestAttr{AllOff=0, BoldOn, Underscore, BlinkOn};
+enum TestAttr{AllOff=0, BoldOn, Underscore=4, BlinkOn};
 enum FgColor{FgBlack=30, FgRed, FgGreen, FgYellow, FgBlue, FgMagenta, FgCyan, FgWhite};
 enum BgColor{BgBlack=40, BgRed, BgGreen, BgYellow, BgBlue, BgMagenta, BgCyan, BgWhite};
 
@@ -88,7 +88,7 @@ enum BgColor{BgBlack=40, BgRed, BgGreen, BgYellow, BgBlue, BgMagenta, BgCyan, Bg
 // initial global kVI
 global *init_global();
 int get_key();
-void pretty_print(cache *c);
+void pretty_print(global *);
 
 // memory opeartion
 void *realloc_cache(cache *);

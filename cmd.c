@@ -113,17 +113,22 @@ void move_corsor_UD(cache *c, int step) {
 
   char *p = c->cur;
 
-  if (*p == '\n')
-    p += step;
+  if (*p == '\n') {
+
+    if (step > 0)
+      count = 0;
+    else
+      p += step;
+  }
 
   for (int i = 0; p >= c->begin && p <= c->end; p += step) {
 
     if (*p == '\n') {
       i++;
+    }
 
-      if (i >= count) {
-        break;
-      }
+    if (i >= count) {
+      break;
     }
   }
 
@@ -140,6 +145,7 @@ void move_corsor_UD(cache *c, int step) {
 /* MOVE RIGHT */
 void corsor_move_right(global *kVI) {
   move_corsor_LR(kVI->cur_frame->cache, 1);
+  
 }
 
 /* MOVE LEFT */
@@ -157,6 +163,64 @@ void corsor_move_down(global *kVI) {
   move_corsor_UD(kVI->cur_frame->cache, 1);
 }
 
+/* MOVE TO BEGIN OF LINE */
+void corsor_move_begin(global *kVI) {
+
+  cache *c = kVI->cur_frame->cache;
+  char *begin = c->cur;
+
+  if (*begin == '\n' && begin - 1 >= c->begin)
+    begin --;
+
+  for (; begin >= c->begin && *begin != '\n'; begin--);
+
+  c->cur = begin == c->begin ? c->begin : begin + 1;
+}
+
+/* MOVE TO END OF LEIN*/
+void corsor_move_end(global *kVI) {
+
+  cache *c = kVI->cur_frame->cache;
+  char *end = c->cur;
+
+  for (; end <=c->end && *end != '\n'; end++);
+
+  c->cur = end;
+}
+
+/* MOVE FORWARD */
+void corsor_move_word_forward(global *kVI) {
+
+  cache *c = kVI->cur_frame->cache;
+  char *word = c->cur;
+
+  if (!isalpha(*word)) {
+    for (; word <= c->end && !isalpha(*word); word++);
+  }
+
+  for (; word <= c->end && isalpha(*word); word++);
+
+  c->cur = word;
+}
+
+/* MOVE BACKWARD */
+void corsor_move_word_backward(global *kVI) {
+
+  cache *c = kVI->cur_frame->cache;
+  char *word = c->cur;
+
+  if (isalpha(*word) && !isalpha(*(word - 1))) {
+    word--;
+  }
+
+  if (!isalpha(*word)) {
+    for (; word >= c->begin && !isalpha(*word); word--);
+  }
+
+  for (; word >= c->begin && isalpha(*word); word--);
+
+  c->cur = word == c->begin ? c->begin : word + 1;
+}
 
 /***********************************************
  *              insert char cmd
@@ -327,6 +391,63 @@ void write(global *kVI) {
 }
 
 /***********************************************
+ *             delete multi line
+ ************************************************/
+void delete_word(cache *c) {
+  char *w_end;
+
+  for (w_end = c->cur; w_end <= c->end && isalpha(*(w_end)); w_end++);
+
+  copy_forward(w_end, c->cur, c->end - w_end);
+}
+
+
+void delete_cur_line(cache *c) {
+
+  char *begin = c->cur, *end = c->cur;
+
+  if (*(c->cur) == '\n' && *(c->cur - 1) == '\n') {
+    do {
+      delete_cur(c);
+    }while(0);
+
+    c->cur = c->cur == c->end ? c->end : c->cur + 1;
+    return;
+  }
+
+  for (; begin >= c->begin && *begin != '\n'; begin--);
+  begin = begin == c->begin ? c->begin : begin + 1;
+
+  for (; end <= c->end && *end != '\n'; end ++);
+  end = end == c->end ? c->end : end + 1;
+
+  copy_forward(end, begin, c->end - end);
+  c->end = c->end - (end - begin - 1);
+}
+
+
+void delete_multi(global *kVI) {
+
+  int key = get_key();
+  cache *c = kVI->cur_frame->cache;
+
+  switch(key) {
+  case 'w':
+    delete_word(c);
+    break;
+
+  case 'd':
+    delete_cur_line(c);
+    break;
+
+  default:
+    break;
+  }
+
+}
+
+
+/***********************************************
  *             register all cmd
  ************************************************/
 void register_all(global *kVI) {
@@ -358,12 +479,25 @@ void register_all(global *kVI) {
   /***********************************************
    *           register CMD mode cmd
    ************************************************/
-  register2cmd(kVI, 'i', &switch2ins, "");
-  register2cmd(kVI, 'h', &corsor_move_left, "");
-  register2cmd(kVI, 'l', &corsor_move_up, "");
+  register2cmd(kVI, 'i', &switch2ins, "i: switch to ins mode");
+
+  register2cmd(kVI, 'h', &corsor_move_left, "h: move left");
+  register2cmd(kVI, 'l', &corsor_move_right, "l: move right");
+  register2cmd(kVI, 'j', &corsor_move_up, "j: move up");
   register2cmd(kVI, 'k', &corsor_move_down, "");
-  register2cmd(kVI, 'x', &delete_character, "");
-  register2cmd(kVI, 'q', &switch2quit, "");
-  register2cmd(kVI, 'r', &replace_character_at_corsor, "");
-  register2cmd(kVI, 'w', &write, "");
+  register2cmd(kVI, LEFT, &corsor_move_left, "");
+  register2cmd(kVI, RIGHT, &corsor_move_right, "");
+  register2cmd(kVI, UP, &corsor_move_up, "");
+  register2cmd(kVI, DOWN, &corsor_move_down, "");
+  register2cmd(kVI, 'a', &corsor_move_begin, "a: move to begin");
+  register2cmd(kVI, 'e', &corsor_move_end, "a: move to end");
+  register2cmd(kVI, 'f', &corsor_move_word_forward, "f: move forward");
+  register2cmd(kVI, 'b', &corsor_move_word_backward, "b: move backward");
+
+  register2cmd(kVI, 'x', &delete_character, "x: delete character");
+  register2cmd(kVI, 'q', &switch2quit, "q: quit editor");
+  register2cmd(kVI, 'r', &replace_character_at_corsor, "r: replace character");
+  register2cmd(kVI, 'w', &write, "w: write to file");
+
+  register2cmd(kVI, 'd', &delete_multi, "d: delete multi");
 }
